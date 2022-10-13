@@ -72,6 +72,7 @@ public class RabbitMQConsumer {
             threadList.add(thread);
         }
 
+        Long startTime = System.currentTimeMillis();
         for (int i = 0; i < threadList.size(); i++) {
             threadList.get(i).start();
         }
@@ -82,6 +83,8 @@ public class RabbitMQConsumer {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+        System.out.println(MatchingThread.checkedItem);
+        System.out.println("Time Taken: " + (System.currentTimeMillis()-startTime)/1000);
     }
 
     public byte[] getByteDataFromBlob(Blob blob) {

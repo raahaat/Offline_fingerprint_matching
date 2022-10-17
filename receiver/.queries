@@ -1,0 +1,2 @@
+select_customer=select count(*) from fp_enroll
+random_customer=select * from fp_enroll order by cust_no

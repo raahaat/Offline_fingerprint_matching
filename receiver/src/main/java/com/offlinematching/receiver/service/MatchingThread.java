@@ -10,6 +10,9 @@ import java.util.Map;
 
 import com.futronictech.AnsiSDKLib;
 
+import io.github.cdimascio.dotenv.Dotenv;
+import oracle.net.aso.j;
+
 public class MatchingThread implements Runnable {
 
     Connection con;
@@ -19,11 +22,12 @@ public class MatchingThread implements Runnable {
     String customerNumber;
     String token;
     static int checkedItem = 0;
+    String jobID;
 
     public MatchingThread() {
     }
 
-    public MatchingThread(String token, String customerNumber, Connection con, Map<String, byte[]> customerFingers,
+    public MatchingThread(String jobID, String token, String customerNumber, Connection con, Map<String, byte[]> customerFingers,
             int startIndex, int chunk) {
         this.con = con;
         this.customerFingers = customerFingers;
@@ -31,6 +35,7 @@ public class MatchingThread implements Runnable {
         this.chunk = chunk;
         this.customerNumber = customerNumber;
         this.token = token;
+        this.jobID = jobID;
     }
 
     @Override
@@ -46,7 +51,9 @@ public class MatchingThread implements Runnable {
         float[] score = new float[1];
         AnsiSDKLib ansiSDKLib = new AnsiSDKLib();
         Statement stmt = con.createStatement();
-        ResultSet rs = stmt.executeQuery("select * from fp_enroll order by cust_no" + " OFFSET " + startIndex
+        Dotenv queries = Dotenv.configure().filename(".queries")
+                .load(); 
+        ResultSet rs = stmt.executeQuery(queries.get("random_customer") + " OFFSET " + startIndex
                 + " ROWS FETCH FIRST " + chunk + " ROWS ONLY");
         while (rs.next()) {
             Map<String, byte[]> singleFingerData = new HashMap<>();
@@ -71,6 +78,8 @@ public class MatchingThread implements Runnable {
                             checkedItem++;
                             if (score[0] > AnsiSDKLib.FTR_ANSISDK_MATCH_SCORE_HIGH_MEDIUM) {
                                 System.out.println("Matched with score: " + score[0]);
+                                System.out.println("job ID: " + jobID);
+                                System.out.println(customerNumber + "--" + custKey + " -------" + custFromDB +"--" + randomKey );
                             } else {
                                 // System.out.println("Not matched with score: " + score[0]);
                             }

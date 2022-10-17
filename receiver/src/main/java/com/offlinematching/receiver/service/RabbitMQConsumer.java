@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,9 @@ public class RabbitMQConsumer {
         String customerNumber = data[0];
         String token = data[1];
         Dotenv dotenv = Dotenv.load();
+        Dotenv queries = Dotenv.configure().filename(".queries")
+                .load(); 
+        String jobID = (String) UUID.randomUUID().toString();
         Map<String, byte[]> customerFingers = new HashMap<>();
         List<Thread> threadList = new ArrayList<>();
         Connection con;
@@ -37,7 +41,7 @@ public class RabbitMQConsumer {
         con = DriverManager.getConnection(
                 dotenv.get("db_url"), dotenv.get("db_user"), dotenv.get("db_password"));
         Statement stmt = con.createStatement();
-        ResultSet rs = stmt.executeQuery("select count(*) from fp_enroll");
+        ResultSet rs = stmt.executeQuery(queries.get("select_customer"));
         rs.next();
         int records = rs.getInt(1);
 
@@ -65,7 +69,7 @@ public class RabbitMQConsumer {
             if (i > 0 && (i == (threads - 1))) {
                 chunk += records % threads;
             }
-            MatchingThread matchingThread = new MatchingThread(token, customerNumber, con, customerFingers, startIndex,
+            MatchingThread matchingThread = new MatchingThread(jobID, token, customerNumber, con, customerFingers, startIndex,
                     chunk);
             startIndex += chunk;
             Thread thread = new Thread(matchingThread);

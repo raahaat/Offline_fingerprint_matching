@@ -11,7 +11,6 @@ import java.util.Map;
 import com.futronictech.AnsiSDKLib;
 
 import io.github.cdimascio.dotenv.Dotenv;
-import oracle.net.aso.j;
 
 public class MatchingThread implements Runnable {
 
@@ -27,7 +26,8 @@ public class MatchingThread implements Runnable {
     public MatchingThread() {
     }
 
-    public MatchingThread(String jobID, String token, String customerNumber, Connection con, Map<String, byte[]> customerFingers,
+    public MatchingThread(String jobID, String token, String customerNumber, Connection con,
+            Map<String, byte[]> customerFingers,
             int startIndex, int chunk) {
         this.con = con;
         this.customerFingers = customerFingers;
@@ -52,7 +52,7 @@ public class MatchingThread implements Runnable {
         AnsiSDKLib ansiSDKLib = new AnsiSDKLib();
         Statement stmt = con.createStatement();
         Dotenv queries = Dotenv.configure().filename(".queries")
-                .load(); 
+                .load();
         ResultSet rs = stmt.executeQuery(queries.get("random_customer") + " OFFSET " + startIndex
                 + " ROWS FETCH FIRST " + chunk + " ROWS ONLY");
         while (rs.next()) {
@@ -77,9 +77,10 @@ public class MatchingThread implements Runnable {
                                     score);
                             checkedItem++;
                             if (score[0] > AnsiSDKLib.FTR_ANSISDK_MATCH_SCORE_HIGH_MEDIUM) {
-                                System.out.println("Matched with score: " + score[0]);
                                 System.out.println("job ID: " + jobID);
-                                System.out.println(customerNumber + "--" + custKey + " -------" + custFromDB +"--" + randomKey );
+                                System.out.println("Matched with score: " + score[0]);
+                                System.out.println(customerNumber + "--" + custKey + "----with----" + custFromDB + "--"
+                                        + randomKey);
                             } else {
                                 // System.out.println("Not matched with score: " + score[0]);
                             }

@@ -1,2 +1,4 @@
 select_customer=select count(*) from fp_enroll
 random_customer=select * from fp_enroll order by cust_no
+specific_customer=select * from fp_enroll where cust_no=
+job_logs=insert into matching_jobs (job_id, customer_number, started_at) VALUES 

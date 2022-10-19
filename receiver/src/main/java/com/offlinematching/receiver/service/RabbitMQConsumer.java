@@ -32,21 +32,28 @@ public class RabbitMQConsumer {
         String token = data[1];
         Dotenv dotenv = Dotenv.load();
         Dotenv queries = Dotenv.configure().filename(".queries")
-                .load(); 
+                .load();
         String jobID = (String) UUID.randomUUID().toString();
         Map<String, byte[]> customerFingers = new HashMap<>();
         List<Thread> threadList = new ArrayList<>();
         Connection con;
+        // Connection logCon;
         Class.forName("oracle.jdbc.OracleDriver");
         con = DriverManager.getConnection(
                 dotenv.get("db_url"), dotenv.get("db_user"), dotenv.get("db_password"));
+        // Class.forName("org.postgresql.Driver");
+        // logCon = DriverManager.getConnection(dotenv.get("log_db_url"), dotenv.get("log_db_user"),
+        //         dotenv.get("log_db_password"));
         Statement stmt = con.createStatement();
         ResultSet rs = stmt.executeQuery(queries.get("select_customer"));
         rs.next();
         int records = rs.getInt(1);
 
+        // Statement logStmt = logCon.createStatement();
+        // logStmt.execute(queries.get("job_logs") + "(" + customerNumber + ", " + jobID + ", Now())");
+
         Statement fingerStatement = con.createStatement();
-        ResultSet fingers = fingerStatement.executeQuery("select * from fp_enroll where cust_no=" + customerNumber);
+        ResultSet fingers = fingerStatement.executeQuery(queries.get("specific_customer") + customerNumber);
         while (fingers.next()) {
             customerFingers.put("RTHUMB", getByteDataFromBlob(fingers.getBlob("RTHUMB")));
             customerFingers.put("RINDEX", getByteDataFromBlob(fingers.getBlob("RINDEX")));
@@ -69,7 +76,8 @@ public class RabbitMQConsumer {
             if (i > 0 && (i == (threads - 1))) {
                 chunk += records % threads;
             }
-            MatchingThread matchingThread = new MatchingThread(jobID, token, customerNumber, con, customerFingers, startIndex,
+            MatchingThread matchingThread = new MatchingThread(jobID, token, customerNumber, con, customerFingers,
+                    startIndex,
                     chunk);
             startIndex += chunk;
             Thread thread = new Thread(matchingThread);

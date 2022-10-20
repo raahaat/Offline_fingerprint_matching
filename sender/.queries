@@ -1,0 +1,1 @@
+job_logs=insert into matching_jobs (customer_number , token, job_status, started_at ) values (?, ?, ?, Now())

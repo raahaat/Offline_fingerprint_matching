@@ -1,0 +1,20 @@
+create table matching_jobs(
+	job_id SERIAL PRIMARY KEY,
+	customer_number VARCHAR(20),
+	token VARCHAR(200),
+	started_at TIMESTAMP,
+	job_status Varchar(10),
+	ended_at TIMESTAMP
+)
+
+
+create table matching_log
+(
+	id SERIAL primary key,
+	customer_number varchar(20),
+	customer_finger varchar(10),
+	with_customer_number varchar(20),
+	with_customer_finger varchar(10),
+	token VARCHAR(200),
+	careted_at TIMESTAMP
+)

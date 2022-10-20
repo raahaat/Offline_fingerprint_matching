@@ -2,6 +2,7 @@ package com.offlinematching.receiver.service;
 
 import java.sql.Blob;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -15,18 +16,18 @@ import io.github.cdimascio.dotenv.Dotenv;
 public class MatchingThread implements Runnable {
 
     Connection con;
+    Connection logCon;
     Map<String, byte[]> customerFingers = new HashMap<>();
     int startIndex;
     int chunk;
     String customerNumber;
     String token;
     static int checkedItem = 0;
-    String jobID;
 
     public MatchingThread() {
     }
 
-    public MatchingThread(String jobID, String token, String customerNumber, Connection con,
+    public MatchingThread(String token, String customerNumber, Connection con,Connection logCon,
             Map<String, byte[]> customerFingers,
             int startIndex, int chunk) {
         this.con = con;
@@ -35,7 +36,7 @@ public class MatchingThread implements Runnable {
         this.chunk = chunk;
         this.customerNumber = customerNumber;
         this.token = token;
-        this.jobID = jobID;
+        this.logCon = logCon;
     }
 
     @Override
@@ -77,13 +78,20 @@ public class MatchingThread implements Runnable {
                                     score);
                             checkedItem++;
                             if (score[0] > AnsiSDKLib.FTR_ANSISDK_MATCH_SCORE_HIGH_MEDIUM) {
-                                System.out.println("job ID: " + jobID);
+                                System.out.println("Token: " + token);
                                 System.out.println("Matched with score: " + score[0]);
                                 System.out.println(customerNumber + "--" + custKey + "----with----" + custFromDB + "--"
                                         + randomKey);
-                            } else {
-                                // System.out.println("Not matched with score: " + score[0]);
-                            }
+
+                                PreparedStatement pstmt = logCon.prepareStatement(queries.get("matching_log"));
+                                pstmt.setString(1, customerNumber);
+                                pstmt.setString(2, custKey);
+                                pstmt.setString(3, custFromDB);
+                                pstmt.setString(4, randomKey);
+                                pstmt.setString(5, token);
+                                pstmt.execute();
+                                pstmt.close();
+                            } 
 
                         }
 

@@ -3,6 +3,7 @@ package com.offlinematching.receiver.service;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -33,24 +34,21 @@ public class RabbitMQConsumer {
         Dotenv dotenv = Dotenv.load();
         Dotenv queries = Dotenv.configure().filename(".queries")
                 .load();
-        String jobID = (String) UUID.randomUUID().toString();
+        
         Map<String, byte[]> customerFingers = new HashMap<>();
         List<Thread> threadList = new ArrayList<>();
         Connection con;
-        // Connection logCon;
+        Connection logCon;
         Class.forName("oracle.jdbc.OracleDriver");
         con = DriverManager.getConnection(
                 dotenv.get("db_url"), dotenv.get("db_user"), dotenv.get("db_password"));
-        // Class.forName("org.postgresql.Driver");
-        // logCon = DriverManager.getConnection(dotenv.get("log_db_url"), dotenv.get("log_db_user"),
-        //         dotenv.get("log_db_password"));
+        Class.forName("org.postgresql.Driver");
+        logCon = DriverManager.getConnection(dotenv.get("log_db_url"), dotenv.get("log_db_user"),
+                dotenv.get("log_db_password"));
         Statement stmt = con.createStatement();
-        ResultSet rs = stmt.executeQuery(queries.get("select_customer"));
+        ResultSet rs = stmt.executeQuery(queries.get("select_customer_count"));
         rs.next();
         int records = rs.getInt(1);
-
-        // Statement logStmt = logCon.createStatement();
-        // logStmt.execute(queries.get("job_logs") + "(" + customerNumber + ", " + jobID + ", Now())");
 
         Statement fingerStatement = con.createStatement();
         ResultSet fingers = fingerStatement.executeQuery(queries.get("specific_customer") + customerNumber);
@@ -76,7 +74,7 @@ public class RabbitMQConsumer {
             if (i > 0 && (i == (threads - 1))) {
                 chunk += records % threads;
             }
-            MatchingThread matchingThread = new MatchingThread(jobID, token, customerNumber, con, customerFingers,
+            MatchingThread matchingThread = new MatchingThread(token, customerNumber, con, logCon, customerFingers,
                     startIndex,
                     chunk);
             startIndex += chunk;
@@ -97,6 +95,12 @@ public class RabbitMQConsumer {
         }
         System.out.println(MatchingThread.checkedItem);
         System.out.println("Time Taken: " + (System.currentTimeMillis() - startTime));
+        PreparedStatement logStmt = logCon.prepareStatement(queries.get("job_update"));
+        logStmt.setString(1, token);
+        logStmt.execute();
+        logStmt.close();
+        logCon.close();
+
     }
 
     public byte[] getByteDataFromBlob(Blob blob) {

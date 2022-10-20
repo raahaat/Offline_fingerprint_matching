@@ -2,6 +2,7 @@ package com.offlinematching.sender.controller;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
@@ -27,13 +28,18 @@ public class MessageController {
     public MessageController(RabbitMQProducer producer) {
         this.producer = producer;
     }
+
     Dotenv dotenv = Dotenv.load();
 
     // http://localhost:8080/api/v1/publish?message=hello
     @GetMapping("/publish")
-    public ResponseEntity<Response> sendMessage(@RequestParam("message") String message) throws SQLException, ClassNotFoundException{
-        
+    public ResponseEntity<Response> sendMessage(@RequestParam("message") String message)
+            throws SQLException, ClassNotFoundException {
+
         Response res = new Response();
+        Dotenv queries = Dotenv.configure().filename(".queries")
+                .load();
+
         Class.forName("oracle.jdbc.OracleDriver");
         Connection con = DriverManager.getConnection(
                 dotenv.get("db_url"), dotenv.get("db_user"), dotenv.get("db_password"));
@@ -42,23 +48,32 @@ public class MessageController {
         ResultSet rs = stmt.executeQuery("select count(*) from fp_enroll where cust_no=" + message);
         rs.next();
         int records = rs.getInt(1);
-       
-        if (records >= 1)
-        {
-            res.setCustomerNumber(message);
+
+        if (records >= 1) {
             String token = (String) UUID.randomUUID().toString();
+            Connection logCon = DriverManager.getConnection(dotenv.get("log_db_url"), dotenv.get("log_db_user"),
+                    dotenv.get("log_db_password"));
+            PreparedStatement logStmt = logCon.prepareStatement(queries.get("job_logs"));
+            logStmt.setString(1, message);
+            logStmt.setString(2, token);
+            logStmt.setString(3, "ACTIVE");
+            logStmt.execute();
+            logStmt.close();
+            logCon.close();
+            res.setCustomerNumber(message);
             message += "," + token;
-        res.setMessage("Successful");
-        res.setToken(token);
-        producer.sendMessage(message);
-        return new ResponseEntity<>(res, HttpStatus.OK);
-        }else{
+            res.setMessage("Successful");
+            res.setToken(token);
+            producer.sendMessage(message);
+            stmt.close();
+            con.close();
+            return new ResponseEntity<>(res, HttpStatus.OK);
+        } else {
             res.setCustomerNumber(message);
             res.setMessage("Customer does not exist!");
             res.setToken("N/A");
             return new ResponseEntity<>(res, HttpStatus.BAD_REQUEST);
         }
-       
-        
+
     }
 }

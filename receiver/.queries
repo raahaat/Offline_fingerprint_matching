@@ -1,5 +1,5 @@
-select_customer_count=select count(*) from fp_enroll
-random_customer=select * from fp_enroll order by cust_no
+select_customer_count=select max(cust_no) from fp_enroll
+random_customer=select * from fp_enroll where standard='S' and 
 specific_customer=select * from fp_enroll where cust_no=
 job_update=update matching_jobs set ended_at=Now(), job_status='DONE' where token =?
 matching_log=insert into matching_log (customer_number, customer_finger, with_customer_number, with_customer_finger, token, created_at) values (?, ?, ?, ?, ?, NOW())

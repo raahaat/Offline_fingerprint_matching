@@ -1,5 +1,6 @@
 package com.offlinematching.receiver.service;
 
+import java.io.IOException;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -11,22 +12,31 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
+import com.offlinematching.receiver.utils.*;
+import com.rabbitmq.client.Channel;
 
 import io.github.cdimascio.dotenv.Dotenv;
-
+@EnableRabbit
 @Service
 public class RabbitMQConsumer {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMQConsumer.class);
 
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMQConsumer.class);
+    public Counter counter;
+ 
     @RabbitListener(queues = { "${rabbitmq.queue.name}" })
-    public void consume(String message) throws ClassNotFoundException, SQLException {
+    public void consume(String message,  Channel channel,  @Header(AmqpHeaders.DELIVERY_TAG) long tag) throws ClassNotFoundException, SQLException, IOException {
+        channel.basicAck(tag, false);
+        counter = new Counter();
         LOGGER.info(String.format("Received message -> %s", message));
         String[] data = message.split(",");
         String customerNumber = data[0];
@@ -48,7 +58,8 @@ public class RabbitMQConsumer {
         Statement stmt = con.createStatement();
         ResultSet rs = stmt.executeQuery(queries.get("select_customer_count"));
         rs.next();
-        int records = rs.getInt(1);
+        // int records = rs.getInt(1);
+        int records = 100000;
 
         Statement fingerStatement = con.createStatement();
         ResultSet fingers = fingerStatement.executeQuery(queries.get("specific_customer") + customerNumber);
@@ -74,7 +85,7 @@ public class RabbitMQConsumer {
             if (i > 0 && (i == (threads - 1))) {
                 chunk += records % threads;
             }
-            MatchingThread matchingThread = new MatchingThread(token, customerNumber, con, logCon, customerFingers,
+            MatchingThread matchingThread = new MatchingThread(counter, token, customerNumber, con, logCon, customerFingers,
                     startIndex,
                     chunk);
             startIndex += chunk;
@@ -93,7 +104,6 @@ public class RabbitMQConsumer {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        System.out.println(MatchingThread.checkedItem);
         System.out.println("Time Taken: " + (System.currentTimeMillis() - startTime));
         PreparedStatement logStmt = logCon.prepareStatement(queries.get("job_update"));
         logStmt.setString(1, token);
@@ -113,5 +123,7 @@ public class RabbitMQConsumer {
         }
         return null;
     }
+
+    
 
 }

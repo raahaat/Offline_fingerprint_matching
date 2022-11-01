@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.futronictech.AnsiSDKLib;
+import com.offlinematching.receiver.utils.Counter;
 
 import io.github.cdimascio.dotenv.Dotenv;
 
@@ -22,12 +23,12 @@ public class MatchingThread implements Runnable {
     int chunk;
     String customerNumber;
     String token;
-    static int checkedItem = 0;
+    Counter counter;
 
     public MatchingThread() {
     }
 
-    public MatchingThread(String token, String customerNumber, Connection con,Connection logCon,
+    public MatchingThread(Counter counter, String token, String customerNumber, Connection con,Connection logCon,
             Map<String, byte[]> customerFingers,
             int startIndex, int chunk) {
         this.con = con;
@@ -37,6 +38,7 @@ public class MatchingThread implements Runnable {
         this.customerNumber = customerNumber;
         this.token = token;
         this.logCon = logCon;
+        this.counter = counter;
     }
 
     @Override
@@ -54,8 +56,8 @@ public class MatchingThread implements Runnable {
         Statement stmt = con.createStatement();
         Dotenv queries = Dotenv.configure().filename(".queries")
                 .load();
-        ResultSet rs = stmt.executeQuery(queries.get("random_customer") + " OFFSET " + startIndex
-                + " ROWS FETCH FIRST " + chunk + " ROWS ONLY");
+        ResultSet rs = stmt.executeQuery(queries.get("random_customer") + " cust_no >= "
+         +startIndex + " and cust_no <= " + (startIndex + chunk));
         while (rs.next()) {
             Map<String, byte[]> singleFingerData = new HashMap<>();
             singleFingerData.put("RTHUMB", getByteDataFromBlob(rs.getBlob("RTHUMB")));
@@ -74,14 +76,14 @@ public class MatchingThread implements Runnable {
                 if (customerFingers.get(custKey) != null) {
                     for (String randomKey : singleFingerData.keySet()) {
                         if (singleFingerData.get(randomKey) != null) {
+                            counter.increment();
                             ansiSDKLib.MatchTemplates(customerFingers.get(custKey), singleFingerData.get(randomKey),
                                     score);
-                            checkedItem++;
                             if (score[0] > AnsiSDKLib.FTR_ANSISDK_MATCH_SCORE_HIGH_MEDIUM) {
                                 System.out.println("Token: " + token);
                                 System.out.println("Matched with score: " + score[0]);
                                 System.out.println(customerNumber + "--" + custKey + "----with----" + custFromDB + "--"
-                                        + randomKey);
+                                        + randomKey );
 
                                 PreparedStatement pstmt = logCon.prepareStatement(queries.get("matching_log"));
                                 pstmt.setString(1, customerNumber);
@@ -92,13 +94,17 @@ public class MatchingThread implements Runnable {
                                 pstmt.execute();
                                 pstmt.close();
                             } 
-
+                            else{
+                                System.out.println("Not matched---");
+                            }
                         }
-
+                            System.out.println(counter.value());
                     }
                 }
             }
         }
+        rs.close();
+        stmt.close();
 
     }
 

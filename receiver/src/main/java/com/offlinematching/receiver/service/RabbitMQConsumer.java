@@ -58,8 +58,8 @@ public class RabbitMQConsumer {
         Statement stmt = con.createStatement();
         ResultSet rs = stmt.executeQuery(queries.get("select_customer_count"));
         rs.next();
-        // int records = rs.getInt(1);
-        int records = 100000;
+        int records = rs.getInt(1);
+        // int records = 100000;
 
         Statement fingerStatement = con.createStatement();
         ResultSet fingers = fingerStatement.executeQuery(queries.get("specific_customer") + customerNumber);
@@ -110,7 +110,7 @@ public class RabbitMQConsumer {
         logStmt.execute();
         logStmt.close();
         logCon.close();
-
+        con.close();
     }
 
     public byte[] getByteDataFromBlob(Blob blob) {

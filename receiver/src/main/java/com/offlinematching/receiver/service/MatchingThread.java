@@ -57,7 +57,7 @@ public class MatchingThread implements Runnable {
         Dotenv queries = Dotenv.configure().filename(".queries")
                 .load();
         ResultSet rs = stmt.executeQuery(queries.get("random_customer") + " cust_no >= "
-         +startIndex + " and cust_no <= " + (startIndex + chunk));
+         +startIndex + " and cust_no < " + (startIndex + chunk));
         while (rs.next()) {
             Map<String, byte[]> singleFingerData = new HashMap<>();
             singleFingerData.put("RTHUMB", getByteDataFromBlob(rs.getBlob("RTHUMB")));

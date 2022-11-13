@@ -31,7 +31,6 @@ public class MessageController {
 
     Dotenv dotenv = Dotenv.load();
 
-    // http://localhost:8080/api/v1/publish?message=hello
     @GetMapping("/publish")
     public ResponseEntity<Response> sendMessage(@RequestParam("message") String message)
             throws SQLException, ClassNotFoundException {
@@ -56,7 +55,7 @@ public class MessageController {
             PreparedStatement logStmt = logCon.prepareStatement(queries.get("job_logs"));
             logStmt.setString(1, message);
             logStmt.setString(2, token);
-            logStmt.setString(3, "ACTIVE");
+            logStmt.setString(3, "PENDING");
             logStmt.execute();
             logStmt.close();
             logCon.close();

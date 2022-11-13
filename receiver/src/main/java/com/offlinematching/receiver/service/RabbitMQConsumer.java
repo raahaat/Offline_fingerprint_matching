@@ -24,27 +24,32 @@ import com.offlinematching.receiver.utils.*;
 import com.rabbitmq.client.Channel;
 
 import io.github.cdimascio.dotenv.Dotenv;
+
 @EnableRabbit
 @Service
 public class RabbitMQConsumer {
 
-
-    
     private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMQConsumer.class);
     public Counter counter;
- 
+
     @RabbitListener(queues = { "${rabbitmq.queue.name}" })
-    public void consume(String message,  Channel channel,  @Header(AmqpHeaders.DELIVERY_TAG) long tag) throws ClassNotFoundException, SQLException, IOException {
+    public void consume(String message, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long tag)
+            throws ClassNotFoundException, SQLException, IOException {
+        // sending acknowledgement to rabbitmq
         channel.basicAck(tag, false);
         counter = new Counter();
         LOGGER.info(String.format("Received message -> %s", message));
+
+        // extracting customer number and token from message
         String[] data = message.split(",");
         String customerNumber = data[0];
         String token = data[1];
+
+        // loading environment files
         Dotenv dotenv = Dotenv.load();
         Dotenv queries = Dotenv.configure().filename(".queries")
                 .load();
-        
+        // connecting finger and log DB
         Map<String, byte[]> customerFingers = new HashMap<>();
         List<Thread> threadList = new ArrayList<>();
         Connection con;
@@ -55,12 +60,14 @@ public class RabbitMQConsumer {
         Class.forName("org.postgresql.Driver");
         logCon = DriverManager.getConnection(dotenv.get("log_db_url"), dotenv.get("log_db_user"),
                 dotenv.get("log_db_password"));
+
+        // counting total customers
         Statement stmt = con.createStatement();
         ResultSet rs = stmt.executeQuery(queries.get("select_customer_count"));
         rs.next();
         int records = rs.getInt(1);
-        // int records = 100000;
 
+        // Fetching data for the customer number
         Statement fingerStatement = con.createStatement();
         ResultSet fingers = fingerStatement.executeQuery(queries.get("specific_customer") + customerNumber);
         while (fingers.next()) {
@@ -77,6 +84,7 @@ public class RabbitMQConsumer {
 
         }
 
+        // defining threads and distributing customer numbers among them
         int threads = Integer.parseInt(dotenv.get("number_of_threads"));
         int startIndex = 0;
         int chunk = (int) Math.floor(records / threads);
@@ -85,7 +93,8 @@ public class RabbitMQConsumer {
             if (i > 0 && (i == (threads - 1))) {
                 chunk += records % threads;
             }
-            MatchingThread matchingThread = new MatchingThread(counter, token, customerNumber, con, logCon, customerFingers,
+            MatchingThread matchingThread = new MatchingThread(counter, token, customerNumber, con, logCon,
+                    customerFingers,
                     startIndex,
                     chunk);
             startIndex += chunk;
@@ -104,6 +113,7 @@ public class RabbitMQConsumer {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+        // generating final output when all threads ended up with matchings
         System.out.println("Time Taken: " + (System.currentTimeMillis() - startTime));
         PreparedStatement logStmt = logCon.prepareStatement(queries.get("job_update"));
         logStmt.setString(1, token);
@@ -123,7 +133,5 @@ public class RabbitMQConsumer {
         }
         return null;
     }
-
-    
 
 }

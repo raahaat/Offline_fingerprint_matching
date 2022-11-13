@@ -3,9 +3,8 @@ package com.offlinematching.sender.payload;
 import lombok.Data;
 
 @Data
-public class Response {
+public class VerificationResponse {
     String message;
-    String customerNumber;
-    String token;
-    
+    String flag;
+    Float score;
 }

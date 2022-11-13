@@ -28,7 +28,7 @@ public class MatchingThread implements Runnable {
     public MatchingThread() {
     }
 
-    public MatchingThread(Counter counter, String token, String customerNumber, Connection con,Connection logCon,
+    public MatchingThread(Counter counter, String token, String customerNumber, Connection con, Connection logCon,
             Map<String, byte[]> customerFingers,
             int startIndex, int chunk) {
         this.con = con;
@@ -57,7 +57,7 @@ public class MatchingThread implements Runnable {
         Dotenv queries = Dotenv.configure().filename(".queries")
                 .load();
         ResultSet rs = stmt.executeQuery(queries.get("random_customer") + " cust_no >= "
-         +startIndex + " and cust_no < " + (startIndex + chunk));
+                + startIndex + " and cust_no < " + (startIndex + chunk));
         while (rs.next()) {
             Map<String, byte[]> singleFingerData = new HashMap<>();
             singleFingerData.put("RTHUMB", getByteDataFromBlob(rs.getBlob("RTHUMB")));
@@ -83,7 +83,7 @@ public class MatchingThread implements Runnable {
                                 System.out.println("Token: " + token);
                                 System.out.println("Matched with score: " + score[0]);
                                 System.out.println(customerNumber + "--" + custKey + "----with----" + custFromDB + "--"
-                                        + randomKey );
+                                        + randomKey);
 
                                 PreparedStatement pstmt = logCon.prepareStatement(queries.get("matching_log"));
                                 pstmt.setString(1, customerNumber);
@@ -91,14 +91,14 @@ public class MatchingThread implements Runnable {
                                 pstmt.setString(3, custFromDB);
                                 pstmt.setString(4, randomKey);
                                 pstmt.setString(5, token);
+                                pstmt.setInt(6, (int) score[0]);
                                 pstmt.execute();
                                 pstmt.close();
-                            } 
-                            else{
+                            } else {
                                 System.out.println("Not matched---");
                             }
                         }
-                            System.out.println(counter.value());
+                        System.out.println(counter.value());
                     }
                 }
             }

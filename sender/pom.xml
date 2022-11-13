@@ -18,6 +18,13 @@
 	</properties>
 	<dependencies>
 		<dependency>
+			<groupId>com.finger</groupId>
+			<artifactId>matching</artifactId>
+			<version>1</version>
+			<scope>system</scope>
+			<systemPath>${basedir}/lib/AnsiSDKLib.jar</systemPath>
+		</dependency>
+		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<version>42.4.1</version>
@@ -99,6 +106,9 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<includeSystemScope>true</includeSystemScope>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

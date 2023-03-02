@@ -1,4 +1,9 @@
 HELP.md
+
+
+.env
+.queries
+
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -31,5 +36,3 @@ build/
 
 ### VS Code ###
 .vscode/
-.env
-.queries

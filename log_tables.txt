@@ -16,5 +16,6 @@ create table matching_log
 	with_customer_number varchar(20),
 	with_customer_finger varchar(10),
 	token VARCHAR(200),
+	score Numeric,
 	careted_at TIMESTAMP
 )

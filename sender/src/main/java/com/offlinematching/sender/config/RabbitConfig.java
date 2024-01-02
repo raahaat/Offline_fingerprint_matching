@@ -1,4 +1,5 @@
 package com.offlinematching.sender.config;
+
 import org.springframework.amqp.core.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -18,26 +19,26 @@ public class RabbitConfig {
 
     // spring bean for rabbitmq queue
     @Bean
-    public Queue queue(){
+    public Queue queue() {
         return new Queue(queue);
     }
 
     // spring bean for rabbitmq exchange
     @Bean
-    public TopicExchange exchange(){
+    public TopicExchange exchange() {
         return new TopicExchange(exchange);
     }
 
     // binding between queue and exchange using routing key
     @Bean
-    public Binding binding(){
+    public Binding binding() {
         return BindingBuilder
                 .bind(queue())
                 .to(exchange())
                 .with(routingKey);
     }
 
-// Spring boot autoconfiguration provides following beans
+    // Spring boot autoconfiguration provides following beans
     // ConnectionFactory
     // RabbitTemplate
     // RabbitAdmin

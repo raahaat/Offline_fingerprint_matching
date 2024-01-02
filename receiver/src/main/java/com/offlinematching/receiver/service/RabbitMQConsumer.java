@@ -49,7 +49,7 @@ public class RabbitMQConsumer {
         Dotenv dotenv = Dotenv.load();
         Dotenv queries = Dotenv.configure().filename(".queries")
                 .load();
-        // connecting finger and log DB
+        // connecting to finger and log DB
         Map<String, byte[]> customerFingers = new HashMap<>();
         List<Thread> threadList = new ArrayList<>();
         Connection con;
@@ -65,7 +65,8 @@ public class RabbitMQConsumer {
         Statement stmt = con.createStatement();
         ResultSet rs = stmt.executeQuery(queries.get("select_customer_count"));
         rs.next();
-        int records = rs.getInt(1);
+        // int records = rs.getInt(1);
+        int records = 150000;
 
         // Fetching data for the customer number
         Statement fingerStatement = con.createStatement();
@@ -115,6 +116,7 @@ public class RabbitMQConsumer {
         }
         // generating final output when all threads ended up with matchings
         System.out.println("Time Taken: " + (System.currentTimeMillis() - startTime));
+        System.out.println("Total matches: " + counter.value());
         PreparedStatement logStmt = logCon.prepareStatement(queries.get("job_update"));
         logStmt.setString(1, token);
         logStmt.execute();
